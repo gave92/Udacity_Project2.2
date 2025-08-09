@@ -65,7 +65,7 @@ def show_pcl(pcl):
         vis.add_geometry(pcd)
         ctr = vis.get_view_control()
         parameters = o3d.io.read_pinhole_camera_parameters("ScreenCamera_2025-07-26-16-30-53.json")
-        #ctr.convert_from_pinhole_camera_parameters(parameters)
+        ctr.convert_from_pinhole_camera_parameters(parameters)
         first_frame = False
     else:
         vis.update_geometry(pcd)
