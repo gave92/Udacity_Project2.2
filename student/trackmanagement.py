@@ -35,20 +35,18 @@ class Track:
         # - initialize track state and track score with appropriate values
         ############
 
-        self.x = np.matrix([[49.53980697],
-                        [ 3.41006279],
-                        [ 0.91790581],
-                        [ 0.        ],
-                        [ 0.        ],
-                        [ 0.        ]])
-        self.P = np.matrix([[9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 6.4e-03, 0.0e+00, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+01]])
-        self.state = 'confirmed'
-        self.score = 0
+        z = np.ones((4, 1))
+        z[:meas.sensor.dim_meas] = meas.z
+        self.x = np.zeros((6, 1))
+        self.x[:3] = (meas.sensor.sens_to_veh * z)[:3]        
+        self.P = np.matrix([[9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00,          0.0e+00,          0.0e+00],
+                            [0.0e+00, 9.0e-02, 0.0e+00, 0.0e+00,          0.0e+00,          0.0e+00],
+                            [0.0e+00, 0.0e+00, 6.4e-03, 0.0e+00,          0.0e+00,          0.0e+00],
+                            [0.0e+00, 0.0e+00, 0.0e+00, params.sigma_p44, 0.0e+00,          0.0e+00],
+                            [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00,          params.sigma_p55, 0.0e+00],
+                            [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00,          0.0e+00,          params.sigma_p66]])
+        self.state = 'initialized'
+        self.score = 1. / params.window # why not start with e.g "3/window"?
         
         ############
         # END student code
@@ -92,7 +90,7 @@ class Trackmanagement:
         self.last_id = -1
         self.result_list = []
         
-    def manage_tracks(self, unassigned_tracks, unassigned_meas, meas_list):  
+    def manage_tracks(self, unassigned_tracks, unassigned_meas, meas_list, sensor):  
         ############
         # TODO Step 2: implement track management:
         # - decrease the track score for unassigned tracks
@@ -100,16 +98,36 @@ class Trackmanagement:
         # feel free to define your own parameters)
         ############
         
+        # added "sensor" param: meas_list is empty if there are no detections 
+        # but I still need to decrease scores for tracks inside sensor fov
+
+        tracks_to_delete = []
+
         # decrease score for unassigned tracks
         for i in unassigned_tracks:
             track = self.track_list[i]
             # check visibility    
-            if meas_list: # if not empty
-                if meas_list[0].sensor.in_fov(track.x):
+            if sensor.name == "lidar":
+                if sensor.in_fov(track.x): # if i should see the object but it's not there
                     # your code goes here
-                    pass 
+                    track.score -= 1. / params.window
+                    track.score = max(track.score, 0.)
+            if track.state == 'confirmed':
+                threshold = params.delete_threshold
+            elif (
+                track.state in {'initialized', 'tentative'}
+            ):
+                threshold = 1/params.window
+            if (
+                track.score < threshold
+                or track.P[0, 0] > params.max_P
+                or track.P[1, 1] > params.max_P
+            ):
+                tracks_to_delete.append(track)
 
         # delete old tracks   
+        for track in tracks_to_delete:
+            self.delete_track(track)
 
         ############
         # END student code
@@ -119,7 +137,7 @@ class Trackmanagement:
         for j in unassigned_meas: 
             if meas_list[j].sensor.name == 'lidar': # only initialize with lidar measurements
                 self.init_track(meas_list[j])
-            
+
     def addTrackToList(self, track):
         self.track_list.append(track)
         self.N += 1
@@ -140,8 +158,15 @@ class Trackmanagement:
         # - set track state to 'tentative' or 'confirmed'
         ############
 
-        pass
+        _new_score = track.score + 1. / params.window
+        track.score = min(_new_score, 1.0)
+        if track.state == 'initialized':
+            if track.score > 0.6:
+                track.state = 'tentative'
+        elif track.state == 'tentative':
+            if track.score > params.confirmed_threshold:
+                track.state = 'confirmed'
         
         ############
         # END student code
-        ############ 
+        ############
