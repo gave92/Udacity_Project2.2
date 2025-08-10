@@ -46,7 +46,7 @@ class Track:
                             [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00,          params.sigma_p55, 0.0e+00],
                             [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00,          0.0e+00,          params.sigma_p66]])
         self.state = 'initialized'
-        self.score = 1. / params.window # why not start with e.g "3/window"?
+        self.score = 1. / params.window
         
         ############
         # END student code
@@ -107,7 +107,7 @@ class Trackmanagement:
         for i in unassigned_tracks:
             track = self.track_list[i]
             # check visibility    
-            if sensor.name == "lidar":
+            if True: #sensor.name == "lidar":
                 if sensor.in_fov(track.x): # if i should see the object but it's not there
                     # your code goes here
                     track.score -= 1. / params.window
@@ -159,7 +159,7 @@ class Trackmanagement:
         ############
 
         _new_score = track.score + 1. / params.window
-        track.score = min(_new_score, 1.0)
+        track.score = min(_new_score, 1.2)
         if track.state == 'initialized':
             if track.score > 0.6:
                 track.state = 'tentative'
