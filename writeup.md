@@ -50,7 +50,21 @@ EKF is applied to a simple single-target scenario with lidar only, the chieved R
 
 ### 2. Initialize, update and delete tracks
 
-The visualization shows that a new track is initialized automatically where unassigned measurements occur, the true track is confirmed quickly, and the track is deleted after it has vanished from the visible range
+The visualization shows that a new track is initialized automatically where unassigned measurements occur, the track passes from the "initilized" to the "tentative" and then to the "confirmed" state. The track is deleted after it has vanished from the visible range.
+<p align="center">
 <img src="img/rmse_2.png" />
+<img src="img/tracking_results_single.gif" />
+</p>
 
-<video src="img/tracking_results_single.mp4" />
+### 3. Associate measurements to tracks with nearest neighbor association
+
+The visualization shows that there are no confirmed “ghost tracks” that do not exist in reality.
+<img src="img/rmse_3.png" />
+
+### 4 SWBAT fuse measurements from lidar and camera
+
+The visualization shows that the tracking performs well, again no confirmed ghost tracks or track losses should occur.
+<p align="center">
+<img src="img/rmse_4.png" />
+<img src="img/tracking_results_udacity.gif" />
+</p>
